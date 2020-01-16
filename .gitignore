@@ -132,7 +132,6 @@ dmypy.json
 
 # VSCode
 .vscode
-.pytest_cache/
 
 /core/management/commands/*.yaml
 
