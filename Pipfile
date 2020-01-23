@@ -9,6 +9,7 @@ verify_ssl = true
 flask = "*"
 ons-platform-python-sdk = {git = "https://github.com/onsplatform/platform_sdk.git",editable = true}
 pytest = "*"
+pika = "*"
 
 [requires]
 python_version = "3.7"

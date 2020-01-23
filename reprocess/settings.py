@@ -8,3 +8,7 @@ SCHEMA = {
 PROCESS_MEMORY = {
     'api_url': os.environ.get('PROCESS_MEMORY_URI', 'http://10.24.2.146:9091/'),
 }
+
+REPROCESS_SETTINGS = {
+    'host': 'localhost'
+}
