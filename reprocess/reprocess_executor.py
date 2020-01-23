@@ -1,7 +1,8 @@
 import json
+
+from reprocess.settings import REPROCESS_SETTINGS
 from platform_sdk.domain.schema.api import SchemaApi
-from reprocess_queue import ReprocessQueue
-from settings import REPROCESS_SETTINGS
+from reprocess.reprocess_queue import ReprocessQueue
 
 
 class ReprocessExecutor:

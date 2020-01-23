@@ -1,10 +1,11 @@
 import json
 import unittest
+
 from flask import Flask
 
-from reprocess.discovery import construct_blueprint
-from .mock.process_memory import ProcessMemoryApi
 from .mock.domain_reader import DomainReader
+from .mock.process_memory import ProcessMemoryApi
+from reprocess.discovery import construct_blueprint
 
 
 class DiscoveryTest(unittest.TestCase):
