@@ -19,14 +19,15 @@ def construct_blueprint(process_memory_api, domain_reader):
             process_memory_entities = process_memory_api.get_entities(instance_id)
             entities_to_reprocess = EntitiesToReprocess.get_entities_to_reprocess(process_memory_entities)
             process_memories_to_reprocess = get_process_memories_to_reprocess(app, entities_to_reprocess)
-            for process_memory in [pm for pm in process_memories_to_reprocess if pm != instance_id]:
-                reprocess_queue.enqueue(process_memory, {
+            for process_memory_to_reprocess in [pm for pm in process_memories_to_reprocess if pm != instance_id]:
+                event = process_memory_api.get_event(process_memory_to_reprocess)
+                event['reprocessing'] = {
+                    'instance_id': instance_id
+                }
+                reprocess_queue.enqueue(process_memory_to_reprocess, {
                     'solution': solution,
                     'app': app,
-                    'instance_id': process_memory,
-                    'reprocessing': {
-                        'instance_id': instance_id
-                    },
+                    'event': event,
                 })
 
     def get_process_memories_to_reprocess(app, entities):

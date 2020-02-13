@@ -1,14 +1,15 @@
 import json
-
-from reprocess.settings import REPROCESS_SETTINGS
+from settings import *
+from reprocess_queue import ReprocessQueue
 from platform_sdk.domain.schema.api import SchemaApi
-from reprocess.reprocess_queue import ReprocessQueue
+from platform_sdk.event_manager import EventManager
 
 
 class ReprocessExecutor:
 
-    def __init__(self, schema, solution, reprocess_settings):
+    def __init__(self, schema, event_manager, solution, reprocess_settings):
         self.schema = schema
+        self.event_manager = event_manager
         self.reprocess_check = ReprocessQueue('reprocess_queue', solution, reprocess_settings)
         self.reprocess_exec = ReprocessQueue('reprocess_queue', solution, reprocess_settings)
 
@@ -20,13 +21,14 @@ class ReprocessExecutor:
             if not self.schema.is_reprocessing(event['solution']):
                 self.reprocess_check.close()
                 method_frame, header_frame, body = self.reprocess_exec.dequeue()
-                print(" [x] Reprocessing %r" % body)
-                return False
+                event = json.loads(body)
+                self.event_manager.send_event(event['event'])
+                self.schema.set_reprocessing(event['solution'])
+                print(" [x] Reprocessing %r" % event)
 
 
-if __name__ == '__main__':
-    schema = SchemaApi({'uri': ''})
-    for solution in schema.get_reprocessable_solutions():
-        executor = ReprocessExecutor(schema, solution, REPROCESS_SETTINGS)
-        executor.reprocess()
-
+schema = SchemaApi(SCHEMA)
+event_manager = EventManager(EVENT_MANAGER)
+for solution in schema.get_reprocessable_solutions():
+    executor = ReprocessExecutor(schema, event_manager, solution['name'], REPROCESS_SETTINGS)
+    executor.reprocess()

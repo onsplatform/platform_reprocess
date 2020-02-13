@@ -4,12 +4,10 @@ import json
 
 class ReprocessQueue():
     def __init__(self, queue, solution, settings):
-        self.queue = queue + '_' + solution
+        self.queue = queue + '_' + solution.lower()
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=settings['host']))
         self.channel = self.connection.channel()
-
-    def declare_queue(self, solution):
-        self.channel.queue_declare(queue=self.queue + solution, durable=True)
+        self.channel.queue_declare(queue=self.queue, durable=True)
 
     def enqueue(self, id, event):
         self.channel.basic_publish(exchange='',
