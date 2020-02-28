@@ -3,13 +3,12 @@ name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
 
-[dev-packages]
-
 [packages]
 flask = "*"
-ons-platform-python-sdk = {git = "https://github.com/onsplatform/platform_sdk.git",editable = true}
+ons-platform-python-sdk = {ref = "coreapi_integration",git = "https://github.com/onsplatform/platform_sdk.git",editable = true}
 pytest = "*"
 pika = "*"
+gunicorn = "*"
 
 [requires]
 python_version = "3.7"
