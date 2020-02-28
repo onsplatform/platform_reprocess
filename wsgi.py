@@ -5,7 +5,7 @@
 """
 import reprocess
 
-reprocess = reprocess.create_app()
+reprocess_api = reprocess.create_app()
 
 if __name__ == "__main__":
-    reprocess.run()
+    reprocess_api.run()
