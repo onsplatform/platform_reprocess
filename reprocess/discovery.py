@@ -1,6 +1,7 @@
+import json
 from datetime import datetime
+from flask import current_app as current_app
 from flask import Blueprint, request, make_response
-
 from reprocess.settings import REPROCESS_SETTINGS
 from reprocess.reprocess_queue import ReprocessQueue
 from platform_sdk.process_memory import GetWithEntitiesType
@@ -16,12 +17,17 @@ def construct_blueprint(process_memory_api, domain_reader):
         app = request.json['app']
         instance_id = request.json['instance_id']
         if instance_id:
+            current_app.logger.debug(f'checking reprocess to instance: {instance_id} app: {app} solution: {solution}')
             reprocess_queue = ReprocessQueue('reprocess_queue', solution, REPROCESS_SETTINGS)
+            current_app.logger.debug(f'getting entities from pm')
             process_memory_entities = process_memory_api.get_entities(instance_id)
+            current_app.logger.debug(f'getting entities to reprocess')
             entities_to_reprocess = EntitiesToReprocess.get_entities_to_reprocess(process_memory_entities)
+            current_app.logger.debug(f'getting pm to reprocess')
             process_memories_to_reprocess = get_process_memories_to_reprocess(app, entities_to_reprocess)
             if process_memories_to_reprocess:
                 for process_memory_to_reprocess in [pm for pm in process_memories_to_reprocess if pm != instance_id]:
+                    current_app.logger.debug(f'reprocessing: ' + json.dumps(process_memory_to_reprocess))
                     event = process_memory_api.get_event(process_memory_to_reprocess)
                     event['reprocessing'] = {
                         'instance_id': instance_id
