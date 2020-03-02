@@ -1,11 +1,11 @@
 import os
 
 SCHEMA = {
-    'uri': os.environ.get('SCHEMA_URI', 'http://localhost:8002/api/v1/'),
+    'uri': os.environ.get('SCHEMA_URI', 'http://localhost:9092/api/v1/'),
 }
 
 PROCESS_MEMORY = {
-    'api_url': os.environ.get('PROCESS_MEMORY_URI', 'http://localhost:8009/'),
+    'api_url': os.environ.get('PROCESS_MEMORY_URI', 'http://localhost:9091/'),
 }
 
 EVENT_MANAGER = {

@@ -1,6 +1,6 @@
 FROM python:3.7-stretch
 
-RUN apt-get -y update && apt-get -y upgrade && apt-get install nginx git -y
+RUN apt-get -y update && apt-get -y upgrade && apt-get install nginx git -y cron
 
 RUN git clone https://github.com/onsplatform/platform_reprocess.git /var/www/reprocess
 
@@ -8,7 +8,6 @@ WORKDIR /var/www/reprocess
 
 RUN pip install pipenv gunicorn
 RUN pipenv install --system --deploy
-
 
 RUN cp /var/www/reprocess/deploy/reprocess.nginx /etc/nginx/sites-available/reprocess
 

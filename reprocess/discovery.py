@@ -1,4 +1,5 @@
-from flask import Blueprint, request
+from datetime import datetime
+from flask import Blueprint, request, make_response
 
 from reprocess.settings import REPROCESS_SETTINGS
 from reprocess.reprocess_queue import ReprocessQueue
@@ -19,16 +20,18 @@ def construct_blueprint(process_memory_api, domain_reader):
             process_memory_entities = process_memory_api.get_entities(instance_id)
             entities_to_reprocess = EntitiesToReprocess.get_entities_to_reprocess(process_memory_entities)
             process_memories_to_reprocess = get_process_memories_to_reprocess(app, entities_to_reprocess)
-            for process_memory_to_reprocess in [pm for pm in process_memories_to_reprocess if pm != instance_id]:
-                event = process_memory_api.get_event(process_memory_to_reprocess)
-                event['reprocessing'] = {
-                    'instance_id': instance_id
-                }
-                reprocess_queue.enqueue(process_memory_to_reprocess, {
-                    'solution': solution,
-                    'app': app,
-                    'event': event,
-                })
+            if process_memories_to_reprocess:
+                for process_memory_to_reprocess in [pm for pm in process_memories_to_reprocess if pm != instance_id]:
+                    event = process_memory_api.get_event(process_memory_to_reprocess)
+                    event['reprocessing'] = {
+                        'instance_id': instance_id
+                    }
+                    reprocess_queue.enqueue(process_memory_to_reprocess, {
+                        'solution': solution,
+                        'app': app,
+                        'event': event,
+                    })
+        return make_response('', 200)
 
     def get_process_memories_to_reprocess(app, entities):
         if entities:
@@ -39,15 +42,16 @@ def construct_blueprint(process_memory_api, domain_reader):
             process_memories_with_entities_type = process_memory_api.get_with_entities_type(
                 _get_with_entities_type(entities))
 
-            for process_memory in process_memories_with_entities_type:
-                if process_memory not in to_reprocess:
-                    maps = process_memory_api.get_maps(process_memory)
-                    for entity in entities:
-                        entity_map = maps[entity['__type__']]
-                        if entity_map and process_memory_should_use(app, entity_map, entity, process_memory):
-                            to_reprocess.append(process_memory)
+            if process_memories_with_entities_type:
+                for process_memory in process_memories_with_entities_type:
+                    if process_memory not in to_reprocess:
+                        maps = process_memory_api.get_maps(process_memory)
+                        for entity in entities:
+                            entity_map = maps[entity['__type__']]
+                            if entity_map and process_memory_should_use(app, entity_map, entity, process_memory):
+                                to_reprocess.append(process_memory)
 
-            return to_reprocess
+                return to_reprocess
 
     def process_memory_should_use(app, map, entity, process_memory):
         persisted_entities = []
@@ -65,12 +69,19 @@ def construct_blueprint(process_memory_api, domain_reader):
 
     def _get_using_entities_body(entities):
         ret = GetWithEntitiesType()
-        [ret.add(id=entity['id'], timestamp=entity['_metadata']['modified_at']) for entity in entities if entity['id']]
+        [ret.add(id=entity['id'], timestamp=entity['_metadata']['modified_at'])
+         for entity in entities
+         if 'id' in entity.keys() and entity['id']]
         return ret
 
     def _get_with_entities_type(entities):
         ret = GetWithEntitiesType()
-        [ret.add(type=entity['__type__'], timestamp=entity['_metadata']['modified_at']) for entity in entities]
+        [ret.add(
+            type=entity['__type__'],
+            timestamp=entity['_metadata']['modified_at']
+            if 'modified_at' in entity['_metadata'].keys()
+            else datetime.now()
+        ) for entity in entities]
         return ret
 
     return discovery_blueprint
