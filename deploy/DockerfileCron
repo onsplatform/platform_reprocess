@@ -1,0 +1,19 @@
+FROM python:3.7-stretch
+
+RUN apt-get -y update && apt-get -y upgrade && apt-get install git -y cron
+
+RUN git clone https://github.com/onsplatform/platform_reprocess.git /var/cron/reprocess
+
+WORKDIR /var/cron/reprocess
+
+RUN mkdir /var/cron/reprocess/log
+
+RUN pipenv install --system --deploy
+
+RUN cp /var/cron/reprocess/deploy/crontab_entrypoint.sh /crontab_entrypoint.sh
+RUN cp /var/cron/reprocess/deploy/reprocess.sh /reprocess.sh
+
+RUN chmod +x /crontab_entrypoint.sh
+RUN chmod +x /reprocess.sh
+
+ENTRYPOINT ["sh", "/crontab_entrypoint.sh"]
