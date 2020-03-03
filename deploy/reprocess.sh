@@ -7,4 +7,4 @@ python3 -V
 
 cd /var/cron/reprocess
 
-pipenv run python reprocess/reprocess_executor.py
+/usr/local/bin/pipenv run python reprocess/reprocess_executor.py
