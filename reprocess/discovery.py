@@ -45,9 +45,11 @@ def construct_blueprint(process_memory_api, domain_reader):
             current_app.logger.debug(entities)
             current_app.logger.debug(f'getting using entities')
             to_reprocess = process_memory_api.get_using_entities(_get_using_entities_body(entities))
+            if not to_reprocess: to_reprocess = list()
 
             '''Process memories that would use the entities'''
             current_app.logger.debug(f'getting using entities types')
+            import pdb;pdb.set_trace()
             process_memories_with_entities_type = process_memory_api.get_with_entities_type(
                 _get_with_entities_type(entities))
 
@@ -89,7 +91,7 @@ def construct_blueprint(process_memory_api, domain_reader):
             type=entity['__type__'],
             timestamp=entity['_metadata']['modified_at']
             if 'modified_at' in entity['_metadata'].keys()
-            else datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
+            else datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')
         ) for entity in entities]
         return ret
 
