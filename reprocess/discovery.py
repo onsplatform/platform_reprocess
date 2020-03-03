@@ -49,7 +49,6 @@ def construct_blueprint(process_memory_api, domain_reader):
 
             '''Process memories that would use the entities'''
             current_app.logger.debug(f'getting using entities types')
-            import pdb;pdb.set_trace()
             process_memories_with_entities_type = process_memory_api.get_with_entities_type(
                 _get_with_entities_type(entities))
 
