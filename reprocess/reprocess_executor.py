@@ -23,7 +23,7 @@ class ReprocessExecutor:
                 method_frame, header_frame, body = self.reprocess_exec.dequeue()
                 event = json.loads(body)
                 self.event_manager.send_event(event['event'])
-                self.schema.set_reprocessing(event['solution'])
+                #self.schema.set_reprocessing(event['solution'])
                 print(" [x] Reprocessing %r" % event)
 
 

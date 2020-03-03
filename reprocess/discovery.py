@@ -29,6 +29,7 @@ def construct_blueprint(process_memory_api, domain_reader):
                 for process_memory_to_reprocess in [pm for pm in process_memories_to_reprocess if pm != instance_id]:
                     current_app.logger.debug(f'reprocessing: ' + json.dumps(process_memory_to_reprocess))
                     event = process_memory_api.get_event(process_memory_to_reprocess)
+                    event['scope'] = 'reprocessing'
                     event['reprocessing'] = {
                         'instance_id': instance_id
                     }
@@ -70,20 +71,25 @@ def construct_blueprint(process_memory_api, domain_reader):
             entities = domain_reader.get_map_entities(app, entity['__type__'], filter_name, params)
             if entities:
                 persisted_entities.append(entities)
-        return (e for e in persisted_entities if e['id'] == entity['id']) or (e for e in persisted_entities if
-                                                                              e.pop('_metadata') == entity.pop(
-                                                                                  '_metadata'))
+        entity_with_same_id = {e for e in persisted_entities if e['id'] == entity['id']}
+        entity_is_equal = {e for e in persisted_entities if e.pop('_metadata') == entity.pop('_metadata')}
+        return entity_with_same_id or entity_is_equal
 
     def get_query_string(process_memory):
         return process_memory_api.get_payload(process_memory)
 
+    # To refactor (dry)
     def _get_using_entities_body(entities):
         ret = GetWithEntitiesType()
-        [ret.add(id=entity['id'], timestamp=entity['_metadata']['modified_at'])
-         for entity in entities
-         if 'id' in entity.keys() and entity['id']]
+        [ret.add(
+            id=entity['id'],
+            timestamp=entity['_metadata']['modified_at']
+            if 'modified_at' in entity['_metadata'].keys()
+            else datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')
+        ) for entity in entities if 'id' in entity.keys() and entity['id']]
         return ret
 
+    # To refactor (dry)
     def _get_with_entities_type(entities):
         ret = GetWithEntitiesType()
         [ret.add(
