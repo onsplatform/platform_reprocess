@@ -45,6 +45,7 @@ def construct_blueprint(process_memory_api, domain_reader):
             '''Process memories that used entity'''
             current_app.logger.debug(entities)
             current_app.logger.debug(f'getting using entities')
+
             to_reprocess = process_memory_api.get_using_entities(_get_using_entities_body(entities))
             if not to_reprocess: to_reprocess = list()
 
@@ -62,7 +63,7 @@ def construct_blueprint(process_memory_api, domain_reader):
                             if entity_map and process_memory_should_use(app, entity_map, entity, process_memory):
                                 to_reprocess.append(process_memory)
 
-                return to_reprocess
+            return to_reprocess
 
     def process_memory_should_use(app, map, entity, process_memory):
         persisted_entities = []
