@@ -22,8 +22,8 @@ class ReprocessExecutor:
                 self.reprocess_check.close()
                 method_frame, header_frame, body = self.reprocess_exec.dequeue()
                 event = json.loads(body)
+                self.schema.set_reprocessing(event['solution'])
                 self.event_manager.send_event(event['event'])
-                #self.schema.set_reprocessing(event['solution'])
                 print(" [x] Reprocessing %r" % event)
         else:
             print('Nothing to do...')

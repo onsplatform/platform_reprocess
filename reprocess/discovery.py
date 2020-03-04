@@ -31,7 +31,8 @@ def construct_blueprint(process_memory_api, domain_reader):
                     event = process_memory_api.get_event(process_memory_to_reprocess)
                     event['scope'] = 'reprocessing'
                     event['reprocessing'] = {
-                        'instance_id': instance_id
+                        'instance_id': instance_id,
+                        'from': instance_id
                     }
                     reprocess_queue.enqueue(process_memory_to_reprocess, {
                         'solution': solution,
