@@ -18,28 +18,43 @@ def construct_blueprint(process_memory_api, domain_reader):
         instance_id = request.json['instance_id']
         if instance_id:
             current_app.logger.debug(f'checking reprocess to instance: {instance_id} app: {app} solution: {solution}')
-            reprocess_queue = ReprocessQueue('reprocess_queue', solution, REPROCESS_SETTINGS)
             current_app.logger.debug(f'getting entities from pm')
             process_memory_entities = process_memory_api.get_entities(instance_id)
             current_app.logger.debug(f'getting entities to reprocess')
             entities_to_reprocess = EntitiesToReprocess.get_entities_to_reprocess(process_memory_entities)
             current_app.logger.debug(f'getting pm to reprocess')
             process_memories_to_reprocess = get_process_memories_to_reprocess(app, entities_to_reprocess)
-            if process_memories_to_reprocess:
-                for process_memory_to_reprocess in [pm for pm in process_memories_to_reprocess if pm != instance_id]:
-                    current_app.logger.debug(f'reprocessing: ' + json.dumps(process_memory_to_reprocess))
-                    event = process_memory_api.get_event(process_memory_to_reprocess)
-                    event['scope'] = 'reprocessing'
-                    event['reprocessing'] = {
-                        'instance_id': instance_id,
-                        'from': instance_id
-                    }
-                    reprocess_queue.enqueue(process_memory_to_reprocess, {
-                        'solution': solution,
-                        'app': app,
-                        'event': event,
-                    })
+            queue_process_memories_to_reprocess(app, instance_id, process_memories_to_reprocess, solution)
         return make_response('', 200)
+
+    @discovery_blueprint.route('/force_reprocess', methods=['POST'])
+    def force_reprocess():
+        app = request.json['app']
+        solution = request.json['solution']
+        process_id = request.json['process_id']
+        date_begin_validity = request.json['date_begin_validity']
+        date_end_validity = request.json['date_end_validity']
+        instances_to_reprocess = process_memory_api.get_events_between_dates(process_id, date_begin_validity, date_end_validity)
+        if solution and app and instances_to_reprocess:
+            queue_process_memories_to_reprocess(app, None, instances_to_reprocess, solution)
+        return make_response('', 200)
+
+    def queue_process_memories_to_reprocess(app, instance_id, process_memories_to_reprocess, solution):
+        if process_memories_to_reprocess:
+            reprocess_queue = ReprocessQueue('reprocess_queue', solution, REPROCESS_SETTINGS)
+            for process_memory_to_reprocess in [pm for pm in process_memories_to_reprocess if pm != instance_id]:
+                current_app.logger.debug(f'reprocessing: ' + json.dumps(process_memory_to_reprocess))
+                event = process_memory_api.get_event(process_memory_to_reprocess)
+                event['scope'] = 'reprocessing'
+                event['reprocessing'] = {
+                    'instance_id': instance_id,
+                    'from': instance_id
+                }
+                reprocess_queue.enqueue(process_memory_to_reprocess, {
+                    'solution': solution,
+                    'app': app,
+                    'event': event,
+                })
 
     def get_process_memories_to_reprocess(app, entities):
         if entities:
