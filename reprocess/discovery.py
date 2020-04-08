@@ -80,7 +80,7 @@ def construct_blueprint(process_memory_api, domain_reader):
                         maps = process_memory_api.get_maps(process_memory)
                         for entity in entities:
                             entity_map = maps[entity['__type__']]
-                            current_app.logger.debug(f'testing domain reader with {entity_map}')
+                            current_app.logger.debug(f"testing domain reader with {entity['__type__']}")
                             if entity_map and would_instance_use_entity(app, entity_map, entity, process_memory):
                                 to_reprocess.append(process_memory)
 
