@@ -78,21 +78,24 @@ def construct_blueprint(process_memory_api, domain_reader):
                 for process_memory in process_memories_with_entities_type:
                     if process_memory not in to_reprocess:
                         maps = process_memory_api.get_maps(process_memory)
+                        process_memory_event = process_memory_api.get_event(process_memory)
+                        app_name = process_memory_event['header']['app_name']
+                        version = process_memory_event['header']['version']
                         for entity in entities:
                             entity_map = maps[entity['__type__']]
                             current_app.logger.debug(f"testing domain reader with {entity['__type__']}")
-                            if entity_map and would_instance_use_entity(app, entity_map, entity, process_memory):
+                            if entity_map and would_instance_use_entity(app_name, version, entity_map, entity, process_memory):
                                 to_reprocess.append(process_memory)
 
             return to_reprocess
 
-    def would_instance_use_entity(app, map, entity, process_memory):
+    def would_instance_use_entity(app, version, map, entity, process_memory):
         founds_entities = []
         params = get_query_string(process_memory)
         current_app.logger.debug(f'payload {params}')
         for filter_name in map['filters'].keys():
             current_app.logger.debug(f'executing filter {filter_name}')
-            entities = domain_reader.get_map_entities(app, entity['__type__'], filter_name, params)
+            entities = domain_reader.get_map_entities(app, version, entity['__type__'], filter_name, params)
             if entities:
                 current_app.logger.debug(f'founds entities: {len(entities)}from filter {filter_name}')
                 founds_entities.append(entities)
