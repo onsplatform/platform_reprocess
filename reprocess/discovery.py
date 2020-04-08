@@ -62,17 +62,17 @@ def construct_blueprint(process_memory_api, domain_reader):
 
     def get_process_memories_to_reprocess(app, entities):
         if entities:
-            '''Process memories that used entity'''
             current_app.logger.debug(entities)
-            current_app.logger.debug(f'getting using entities')
-
+            current_app.logger.debug(f'getting process memories that used those entities')
             to_reprocess = process_memory_api.get_using_entities(_get_using_entities_body(entities))
             if not to_reprocess: to_reprocess = list()
+            current_app.logger.debug(f'process memories to reprocess: {to_reprocess}')
 
-            '''Process memories that would use the entities'''
-            current_app.logger.debug(f'getting using entities types')
+            current_app.logger.debug(f'getting process memories that used those entities types')
             process_memories_with_entities_type = process_memory_api.get_with_entities_type(
                 _get_with_entities_type(entities))
+            current_app.logger.debug(
+                f'process memories could reprocess before filter check: {process_memories_with_entities_type}')
 
             if process_memories_with_entities_type:
                 for process_memory in process_memories_with_entities_type:
@@ -80,21 +80,30 @@ def construct_blueprint(process_memory_api, domain_reader):
                         maps = process_memory_api.get_maps(process_memory)
                         for entity in entities:
                             entity_map = maps[entity['__type__']]
-                            if entity_map and process_memory_should_use(app, entity_map, entity, process_memory):
+                            current_app.logger.debug(f'testing domain reader with {entity_map}')
+                            if entity_map and would_instance_use_entity(app, entity_map, entity, process_memory):
                                 to_reprocess.append(process_memory)
 
             return to_reprocess
 
-    def process_memory_should_use(app, map, entity, process_memory):
-        persisted_entities = []
+    def would_instance_use_entity(app, map, entity, process_memory):
+        founds_entities = []
         params = get_query_string(process_memory)
+        current_app.logger.debug(f'payload {params}')
         for filter_name in map['filters'].keys():
+            current_app.logger.debug(f'executing filter {filter_name}')
             entities = domain_reader.get_map_entities(app, entity['__type__'], filter_name, params)
             if entities:
-                persisted_entities.append(entities)
-        entity_with_same_id = {e for e in persisted_entities if e['id'] == entity['id']}
-        entity_is_equal = {e for e in persisted_entities if e.pop('_metadata') == entity.pop('_metadata')}
-        return entity_with_same_id or entity_is_equal
+                current_app.logger.debug(f'founds entities: {len(entities)}from filter {filter_name}')
+                founds_entities.append(entities)
+        current_app.logger.debug(f'founds entities: {founds_entities}')
+        entity_is_equal = {e for e in founds_entities if compare_entity(e, entity)}
+        return entity_is_equal
+
+    def compare_entity(entity_from, entity_to):
+        entity_from.pop('_metadata')
+        entity_to.pop('_metadata')
+        return entity_from == entity_to
 
     def get_query_string(process_memory):
         return process_memory_api.get_payload(process_memory)
