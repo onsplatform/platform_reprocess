@@ -34,7 +34,11 @@ def construct_blueprint(process_memory_api, domain_reader):
         process_id = request.json['process_id']
         date_begin_validity = request.json['date_begin_validity']
         date_end_validity = request.json['date_end_validity']
-        instances_to_reprocess = process_memory_api.get_events_between_dates(process_id, date_begin_validity, date_end_validity)
+        current_app.logger.debug(
+            f'force reprocess to: {solution} app: {app} process_id: {process_id} dates: {date_begin_validity} - {date_end_validity}')
+        instances_to_reprocess = process_memory_api.get_events_between_dates(process_id, date_begin_validity,
+                                                                             date_end_validity)
+        current_app.logger.debug(f'instances found: {instances_to_reprocess}')
         if solution and app and instances_to_reprocess:
             queue_process_memories_to_reprocess(app, None, instances_to_reprocess, solution)
         return make_response('', 200)
