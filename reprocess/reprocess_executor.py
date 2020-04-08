@@ -32,6 +32,10 @@ class ReprocessExecutor:
 
 schema = SchemaApi(SCHEMA)
 event_manager = EventManager(EVENT_MANAGER)
+print(f'Checkin Reprocessable solutions...')
+solutions = schema.get_reprocessable_solutions()
+print(f'Reprocessable solutions: {solutions}')
 for solution in schema.get_reprocessable_solutions():
+    print(f'Checking reprocess to: {solution}')
     executor = ReprocessExecutor(schema, event_manager, solution['name'], REPROCESS_SETTINGS)
     executor.reprocess()
