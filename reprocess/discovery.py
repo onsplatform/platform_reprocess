@@ -14,17 +14,16 @@ def construct_blueprint(process_memory_api, domain_reader):
     @discovery_blueprint.route('/check', methods=['POST'])
     def check():
         solution = request.json['solution']
-        app = request.json['app']
         instance_id = request.json['instance_id']
         if instance_id:
-            current_app.logger.debug(f'checking reprocess to instance: {instance_id} app: {app} solution: {solution}')
+            current_app.logger.debug(f'checking reprocess to instance: {instance_id} solution: {solution}')
             current_app.logger.debug(f'getting entities from pm')
             process_memory_entities = process_memory_api.get_entities(instance_id)
             current_app.logger.debug(f'getting entities to reprocess')
             entities_to_reprocess = EntitiesToReprocess.get_entities_to_reprocess(process_memory_entities)
             current_app.logger.debug(f'getting pm to reprocess')
-            process_memories_to_reprocess = get_process_memories_to_reprocess(app, entities_to_reprocess)
-            queue_process_memories_to_reprocess(app, instance_id, process_memories_to_reprocess, solution)
+            process_memories_to_reprocess = get_process_memories_to_reprocess(entities_to_reprocess)
+            queue_process_memories_to_reprocess(instance_id, process_memories_to_reprocess, solution)
         return make_response('', 200)
 
     @discovery_blueprint.route('/force_reprocess', methods=['POST'])
@@ -40,10 +39,10 @@ def construct_blueprint(process_memory_api, domain_reader):
                                                                              date_end_validity)
         current_app.logger.debug(f'instances found: {instances_to_reprocess}')
         if solution and app and instances_to_reprocess:
-            queue_process_memories_to_reprocess(app, None, instances_to_reprocess, solution)
+            queue_process_memories_to_reprocess(None, instances_to_reprocess, solution)
         return make_response('', 200)
 
-    def queue_process_memories_to_reprocess(app, instance_id, process_memories_to_reprocess, solution):
+    def queue_process_memories_to_reprocess(instance_id, process_memories_to_reprocess, solution):
         if process_memories_to_reprocess:
             reprocess_queue = ReprocessQueue('reprocess_queue', solution, REPROCESS_SETTINGS)
             for process_memory_to_reprocess in [pm for pm in process_memories_to_reprocess if pm != instance_id]:
@@ -56,11 +55,10 @@ def construct_blueprint(process_memory_api, domain_reader):
                 }
                 reprocess_queue.enqueue(process_memory_to_reprocess, {
                     'solution': solution,
-                    'app': app,
                     'event': event,
                 })
 
-    def get_process_memories_to_reprocess(app, entities):
+    def get_process_memories_to_reprocess(entities):
         if entities:
             current_app.logger.debug(entities)
             current_app.logger.debug(f'getting process memories that used those entities')
@@ -81,31 +79,50 @@ def construct_blueprint(process_memory_api, domain_reader):
                         process_memory_event = process_memory_api.get_event(process_memory)
                         app_name = process_memory_event['header']['app_name']
                         version = process_memory_event['header']['version']
+                        branch = process_memory_event['branch']
                         for entity in entities:
                             entity_map = maps[entity['__type__']]
                             current_app.logger.debug(f"testing domain reader with {entity['__type__']}")
-                            if entity_map and would_instance_use_entity(app_name, version, entity_map, entity, process_memory):
+                            if entity_map and would_instance_use_entity(app_name, version, entity, process_memory,
+                                                                        branch):
                                 to_reprocess.append(process_memory)
 
             return to_reprocess
 
-    def would_instance_use_entity(app, version, map, entity, process_memory):
+    def would_instance_use_entity(app, version, entity, process_memory, branch):
         founds_entities = []
         params = get_query_string(process_memory)
         current_app.logger.debug(f'payload {params}')
-        for filter_name in map['filters'].keys():
-            current_app.logger.debug(f'executing filter {filter_name}')
-            entities = domain_reader.get_map_entities(app, version, entity['__type__'], filter_name, params)
-            if entities:
-                current_app.logger.debug(f'founds entities: {len(entities)}from filter {filter_name}')
-                founds_entities.append(entities)
-        current_app.logger.debug(f'founds entities: {founds_entities}')
-        entity_is_equal = {e for e in founds_entities if compare_entity(e, entity)}
+        teste = {
+            'instance_filter': [
+                {
+                    'type': 'parametrotaxa',
+                    'filter_name': 'byControleCalculoId',
+                    'params': {
+                        'ControleCalculoId': '1'
+                    }
+                }
+            ]
+        }
+        for filter in teste['instance_filter']:
+            if entity['__type__'] == filter['type']:
+                current_app.logger.debug(f"executing filter {filter['type']} {filter['filter_name']}")
+                filter['params']['branch'] = branch
+                entities = domain_reader.get_map_entities(app, version, filter['type'], filter['filter_name'],
+                                                          filter['params'])
+                if entities:
+                    current_app.logger.debug(f"entities: {len(entities)} from filter {filter['filter_name']}")
+                    [founds_entities.append(e) for e in entities]
+
+        entity_is_equal = {e for e in founds_entities if compare_entity(e, entity.copy())}
+        current_app.logger.debug(f'found equals entity: {entity_is_equal}')
         return entity_is_equal
 
     def compare_entity(entity_from, entity_to):
-        entity_from.pop('_metadata')
-        entity_to.pop('_metadata')
+        entries_to_remove = ('_metadata', 'id', '__type__')
+        for k in entries_to_remove:
+            entity_from.pop(k, None)
+            entity_to.pop(k, None)
         return entity_from == entity_to
 
     def get_query_string(process_memory):
