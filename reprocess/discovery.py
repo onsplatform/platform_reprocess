@@ -40,6 +40,7 @@ def construct_blueprint(process_memory_api, domain_reader):
         current_app.logger.debug(f'instances found: {instances_to_reprocess}')
         if solution and app and instances_to_reprocess:
             queue_process_memories_to_reprocess(None, instances_to_reprocess, solution)
+
         return make_response('', 200)
 
     def queue_process_memories_to_reprocess(instance_id, process_memories_to_reprocess, solution):
@@ -65,7 +66,6 @@ def construct_blueprint(process_memory_api, domain_reader):
             to_reprocess = process_memory_api.get_using_entities(_get_using_entities_body(entities))
             if not to_reprocess: to_reprocess = list()
             current_app.logger.debug(f'process memories to reprocess: {to_reprocess}')
-
             current_app.logger.debug(f'getting process memories that used those entities types')
             process_memories_with_entities_type = process_memory_api.get_with_entities_type(
                 _get_with_entities_type(entities))
@@ -75,40 +75,24 @@ def construct_blueprint(process_memory_api, domain_reader):
             if process_memories_with_entities_type:
                 for process_memory in process_memories_with_entities_type:
                     if process_memory not in to_reprocess:
-                        maps = process_memory_api.get_maps(process_memory)
-                        process_memory_event = process_memory_api.get_event(process_memory)
-                        app_name = process_memory_event['header']['app_name']
-                        version = process_memory_event['header']['version']
-                        branch = process_memory_event['branch']
                         for entity in entities:
-                            entity_map = maps[entity['__type__']]
                             current_app.logger.debug(f"testing domain reader with {entity['__type__']}")
-                            if entity_map and would_instance_use_entity(app_name, version, entity, process_memory,
-                                                                        branch):
+                            if would_instance_use_entity(entity, process_memory):
                                 to_reprocess.append(process_memory)
 
             return to_reprocess
 
-    def would_instance_use_entity(app, version, entity, process_memory, branch):
+    def would_instance_use_entity(entity, process_memory):
         founds_entities = []
-        params = get_query_string(process_memory)
-        current_app.logger.debug(f'payload {params}')
-        teste = {
-            'instance_filter': [
-                {
-                    'type': 'parametrotaxa',
-                    'filter_name': 'byControleCalculoId',
-                    'params': {
-                        'ControleCalculoId': '1'
-                    }
-                }
-            ]
-        }
-        for filter in teste['instance_filter']:
+        instance_filters = process_memory_api.get_instance_filter(process_memory)
+        for filter in instance_filters:
             if entity['__type__'] == filter['type']:
                 current_app.logger.debug(f"executing filter {filter['type']} {filter['filter_name']}")
-                filter['params']['branch'] = branch
-                entities = domain_reader.get_map_entities(app, version, filter['type'], filter['filter_name'],
+                filter['params']['branch'] = filter['branch']
+                entities = domain_reader.get_map_entities(filter['app'],
+                                                          filter['header']['version'],
+                                                          filter['type'],
+                                                          filter['filter_name'],
                                                           filter['params'])
                 if entities:
                     current_app.logger.debug(f"entities: {len(entities)} from filter {filter['filter_name']}")
@@ -124,9 +108,6 @@ def construct_blueprint(process_memory_api, domain_reader):
             entity_from.pop(k, None)
             entity_to.pop(k, None)
         return entity_from == entity_to
-
-    def get_query_string(process_memory):
-        return process_memory_api.get_payload(process_memory)
 
     # To refactor (dry)
     def _get_using_entities_body(entities):
