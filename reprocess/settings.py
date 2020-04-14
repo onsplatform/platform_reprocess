@@ -5,7 +5,7 @@ SCHEMA = {
 }
 
 PROCESS_MEMORY = {
-    'api_url': os.environ.get('PROCESS_MEMORY_URI', 'http://localhost:9091/'),
+    'api_url': os.environ.get('PROCESS_MEMORY_URI', 'http://localhost:8009/'),
 }
 
 EVENT_MANAGER = {
