@@ -98,16 +98,12 @@ def construct_blueprint(process_memory_api, domain_reader):
                     current_app.logger.debug(f"entities: {len(entities)} from filter {filter['filter_name']}")
                     [founds_entities.append(e) for e in entities]
 
-        entity_is_equal = {e for e in founds_entities if compare_entity(e, entity.copy())}
+        entity_is_equal = {e for e in founds_entities if entities_have_same_id(e, entity.copy())}
         current_app.logger.debug(f'found equals entity: {entity_is_equal}')
         return entity_is_equal
 
-    def compare_entity(entity_from, entity_to):
-        entries_to_remove = ('_metadata', 'id', '__type__')
-        for k in entries_to_remove:
-            entity_from.pop(k, None)
-            entity_to.pop(k, None)
-        return entity_from == entity_to
+    def entities_have_same_id(entity_from, entity_to):
+        return entity_from['id'] == entity_to['id']
 
     # To refactor (dry)
     def _get_using_entities_body(entities):
