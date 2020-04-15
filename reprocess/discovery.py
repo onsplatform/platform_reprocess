@@ -69,6 +69,7 @@ def construct_blueprint(process_memory_api, domain_reader):
             current_app.logger.debug(f'getting process memories that used those entities types')
             process_memories_with_entities_type = process_memory_api.get_with_entities_type(
                 _get_with_entities_type(entities))
+
             current_app.logger.debug(
                 f'process memories could reprocess before filter check: {process_memories_with_entities_type}')
 
@@ -79,7 +80,6 @@ def construct_blueprint(process_memory_api, domain_reader):
                             current_app.logger.debug(f"testing domain reader with {entity['__type__']}")
                             if would_instance_use_entity(entity, process_memory):
                                 to_reprocess.append(process_memory)
-
             return to_reprocess
 
     def would_instance_use_entity(entity, process_memory):
@@ -98,16 +98,13 @@ def construct_blueprint(process_memory_api, domain_reader):
                     current_app.logger.debug(f"entities: {len(entities)} from filter {filter['filter_name']}")
                     [founds_entities.append(e) for e in entities]
 
-        entity_is_equal = {e for e in founds_entities if compare_entity(e, entity.copy())}
-        current_app.logger.debug(f'found equals entity: {entity_is_equal}')
-        return entity_is_equal
+        same_entities = [e for e in founds_entities if entities_have_same_id(e, entity.copy())]
 
-    def compare_entity(entity_from, entity_to):
-        entries_to_remove = ('_metadata', 'id', '__type__')
-        for k in entries_to_remove:
-            entity_from.pop(k, None)
-            entity_to.pop(k, None)
-        return entity_from == entity_to
+        current_app.logger.debug(f'found equals entity: {same_entities}')
+        return len(same_entities) > 0
+
+    def entities_have_same_id(entity_from, entity_to):
+        return entity_from['id'] == entity_to['id']
 
     # To refactor (dry)
     def _get_using_entities_body(entities):
