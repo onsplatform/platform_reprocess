@@ -8,7 +8,7 @@ from platform_sdk.process_memory import GetWithEntitiesType
 from reprocess.entities_to_reprocess import EntitiesToReprocess
 
 
-def construct_blueprint(process_memory_api, domain_reader):
+def construct_blueprint(process_memory_api, domain_reader, domain_schema):
     discovery_blueprint = Blueprint('discovery', __name__, url_prefix='/discovery')
 
     @discovery_blueprint.route('/check', methods=['POST'])
@@ -61,14 +61,22 @@ def construct_blueprint(process_memory_api, domain_reader):
 
     def get_process_memories_to_reprocess(entities):
         if entities:
-            current_app.logger.debug(entities)
-            current_app.logger.debug(f'getting process memories that used those entities')
-            to_reprocess = process_memory_api.get_using_entities(_get_using_entities_body(entities))
+            reprocessable_app_versions = domain_schema.get_reprocessable_apps_version_with_types(
+                types={'types': entities.keys(), "tag": f"{entities[0]['header']['tag']}"})
+
+            current_app.logger.debug(f'getting process memories that used those entities count: {len(entities)}')
+            to_reprocess = process_memory_api.get_using_entities(
+                _get_using_entities_body(entities, reprocessable_app_versions))
             if not to_reprocess: to_reprocess = list()
             current_app.logger.debug(f'process memories to reprocess: {to_reprocess}')
             current_app.logger.debug(f'getting process memories that used those entities types')
-            process_memories_with_entities_type = process_memory_api.get_with_entities_type(
-                _get_with_entities_type(entities))
+
+            entity_tables = domain_schema.get_entity_tables(
+                types={'types': entities.keys(), "tag": f"{entities[0]['header']['tag']}"})
+
+            # preciso das memorias que utilizaram os tipos das entidades
+            process_memories_with_entities_table = process_memory_api.get_with_entities_tables(
+                {'tables': entity_tables})
 
             current_app.logger.debug(
                 f'process memories could reprocess before filter check: {process_memories_with_entities_type}')
@@ -76,15 +84,15 @@ def construct_blueprint(process_memory_api, domain_reader):
             if process_memories_with_entities_type:
                 for process_memory in process_memories_with_entities_type:
                     if process_memory not in to_reprocess:
+                        instance_filters = process_memory_api.get_instance_filter(process_memory)
                         for entity in entities:
                             current_app.logger.debug(f"testing domain reader with {entity['__type__']}")
-                            if would_instance_use_entity(entity, process_memory):
+                            if would_instance_use_entity(entity, instance_filters):
                                 to_reprocess.append(process_memory)
             return to_reprocess
 
-    def would_instance_use_entity(entity, process_memory):
+    def would_instance_use_entity(entity, instance_filters):
         founds_entities = []
-        instance_filters = process_memory_api.get_instance_filter(process_memory)
         for filter in instance_filters:
             if entity['__type__'] == filter['type']:
                 current_app.logger.debug(f"executing filter {filter['type']} {filter['filter_name']}")
@@ -107,25 +115,21 @@ def construct_blueprint(process_memory_api, domain_reader):
         return entity_from['id'] == entity_to['id']
 
     # To refactor (dry)
-    def _get_using_entities_body(entities):
+    def _get_using_entities_body(entities, reprocessable_aps):
         ret = GetWithEntitiesType()
         [ret.add(
-            id=entity['id'],
-            timestamp=entity['_metadata']['modified_at']
-            if 'modified_at' in entity['_metadata'].keys()
-            else datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')
-        ) for entity in entities if 'id' in entity.keys() and entity['id']]
+            id=entity['id']
+        ) for entity in entities]
+        ret.add_apps(apps=reprocessable_aps)
         return ret
 
     # To refactor (dry)
-    def _get_with_entities_type(entities):
+    def _get_with_entities_type(entities, reprocessable_aps):
         ret = GetWithEntitiesType()
         [ret.add(
             type=entity['__type__'],
-            timestamp=entity['_metadata']['modified_at']
-            if 'modified_at' in entity['_metadata'].keys()
-            else datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')
         ) for entity in entities]
+        ret.add_apps(reprocessable_aps)
         return ret
 
     return discovery_blueprint

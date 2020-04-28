@@ -8,6 +8,7 @@ from reprocess.settings import *
 from reprocess.discovery import construct_blueprint
 from platform_sdk.domain.reader import DomainReaderApi
 from platform_sdk.process_memory import ProcessMemoryApi
+from platform_sdk.domain.schema.api import SchemaApi
 
 
 def create_app(test_config=None):
@@ -40,6 +41,7 @@ def create_app(test_config=None):
     def hello():
         return 'Hello, World! The application is running.'
 
-    app.register_blueprint(construct_blueprint(ProcessMemoryApi(PROCESS_MEMORY), DomainReaderApi(DOMAIN_READER)))
+    app.register_blueprint(construct_blueprint(ProcessMemoryApi(PROCESS_MEMORY), DomainReaderApi(DOMAIN_READER)),
+                           SchemaApi(SCHEMA))
 
     return app
