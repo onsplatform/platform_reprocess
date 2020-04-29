@@ -1,10 +1,8 @@
 import json
-from datetime import datetime
 from flask import current_app as current_app
 from flask import Blueprint, request, make_response
 from reprocess.settings import REPROCESS_SETTINGS
 from reprocess.reprocess_queue import ReprocessQueue
-from platform_sdk.process_memory import GetWithEntitiesType
 from reprocess.entities_to_reprocess import EntitiesToReprocess
 
 
@@ -61,34 +59,35 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
 
     def get_process_memories_to_reprocess(entities):
         if entities:
-            reprocessable_app_versions = domain_schema.get_reprocessable_apps_version_with_types(
-                types={'types': entities.keys(), "tag": f"{entities[0]['header']['tag']}"})
+            reprocessable_tables_grouped_by_tags = domain_schema.get_reprocessable_tables_grouped_by_tags(
+                {'types': entities.keys(), "tag": f"{entities[0]['header']['tag']}"})
 
             current_app.logger.debug(f'getting process memories that used those entities count: {len(entities)}')
+
             to_reprocess = process_memory_api.get_using_entities(
-                _get_using_entities_body(entities, reprocessable_app_versions))
+                {'entities': (entity['id'] for entity in entities),
+                 'tables_grouped_by_tags': reprocessable_tables_grouped_by_tags})
             if not to_reprocess: to_reprocess = list()
+
             current_app.logger.debug(f'process memories to reprocess: {to_reprocess}')
             current_app.logger.debug(f'getting process memories that used those entities types')
 
-            entity_tables = domain_schema.get_entity_tables(
-                types={'types': entities.keys(), "tag": f"{entities[0]['header']['tag']}"})
-
-            # preciso das memorias que utilizaram os tipos das entidades
-            process_memories_with_entities_table = process_memory_api.get_with_entities_tables(
-                {'tables': entity_tables})
+            process_memories_could_reprocess = process_memory_api.get_by_tags(
+                reprocessable_tables_grouped_by_tags)
 
             current_app.logger.debug(
-                f'process memories could reprocess before filter check: {process_memories_with_entities_type}')
+                f'process memories could reprocess before filter check: {process_memories_could_reprocess}')
 
-            if process_memories_with_entities_type:
-                for process_memory in process_memories_with_entities_type:
-                    if process_memory not in to_reprocess:
-                        instance_filters = process_memory_api.get_instance_filter(process_memory)
+            if process_memories_could_reprocess:
+                for process_memory in process_memories_could_reprocess:
+                    if process_memory['id'] not in to_reprocess:
+                        instance_filters = process_memory_api.get_instance_filter(process_memory['id'])
                         for entity in entities:
-                            current_app.logger.debug(f"testing domain reader with {entity['__type__']}")
-                            if would_instance_use_entity(entity, instance_filters):
-                                to_reprocess.append(process_memory)
+                            if entity['__table__'] in reprocessable_tables_grouped_by_tags[
+                                process_memory['tag']].values():
+                                current_app.logger.debug(f"testing domain reader with {entity['__type__']}")
+                                if would_instance_use_entity(entity, instance_filters):
+                                    to_reprocess.append(process_memory['id'])
             return to_reprocess
 
     def would_instance_use_entity(entity, instance_filters):
@@ -113,23 +112,5 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
 
     def entities_have_same_id(entity_from, entity_to):
         return entity_from['id'] == entity_to['id']
-
-    # To refactor (dry)
-    def _get_using_entities_body(entities, reprocessable_aps):
-        ret = GetWithEntitiesType()
-        [ret.add(
-            id=entity['id']
-        ) for entity in entities]
-        ret.add_apps(apps=reprocessable_aps)
-        return ret
-
-    # To refactor (dry)
-    def _get_with_entities_type(entities, reprocessable_aps):
-        ret = GetWithEntitiesType()
-        [ret.add(
-            type=entity['__type__'],
-        ) for entity in entities]
-        ret.add_apps(reprocessable_aps)
-        return ret
 
     return discovery_blueprint
