@@ -20,7 +20,7 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
             current_app.logger.debug(f'getting entities to reprocess')
             entities_to_reprocess = EntitiesToReprocess.get_entities_to_reprocess(process_memory_entities)
             current_app.logger.debug(f'getting pm to reprocess')
-            process_memories_to_reprocess = get_process_memories_to_reprocess(entities_to_reprocess)
+            process_memories_to_reprocess = get_process_memories_to_reprocess(instance_id, entities_to_reprocess)
             queue_process_memories_to_reprocess(instance_id, process_memories_to_reprocess, solution)
         return make_response('', 200)
 
@@ -57,10 +57,11 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
                     'event': event,
                 })
 
-    def get_process_memories_to_reprocess(entities):
+    def get_process_memories_to_reprocess(instance_id, entities):
         if entities:
+            active_event = process_memory_api.get_event(instance_id)
             reprocessable_tables_grouped_by_tags = domain_schema.get_reprocessable_tables_grouped_by_tags(
-                {'types': entities.keys(), "tag": f"{entities[0]['header']['tag']}"})
+                {'types': [entity['_metadata']['type'] for entity in entities], "tag": f"{active_event['header']['image']}"})
 
             current_app.logger.debug(f'getting process memories that used those entities count: {len(entities)}')
 
