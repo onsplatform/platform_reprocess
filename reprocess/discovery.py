@@ -66,27 +66,28 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
             current_app.logger.debug(f'getting process memories that used those entities count: {len(entities)}')
 
             to_reprocess = process_memory_api.get_using_entities(
-                {'entities': (entity['id'] for entity in entities),
+                {'entities': [entity['id'] for entity in entities],
                  'tables_grouped_by_tags': reprocessable_tables_grouped_by_tags})
+
             if not to_reprocess: to_reprocess = list()
 
             current_app.logger.debug(f'process memories to reprocess: {to_reprocess}')
             current_app.logger.debug(f'getting process memories that used those entities types')
 
-            process_memories_could_reprocess = process_memory_api.get_by_tags(
-                reprocessable_tables_grouped_by_tags)
+            process_memories_could_reprocess = process_memory_api.get_by_tags(reprocessable_tables_grouped_by_tags)
 
             current_app.logger.debug(
                 f'process memories could reprocess before filter check: {process_memories_could_reprocess}')
-
+            
             if process_memories_could_reprocess:
                 for process_memory in process_memories_could_reprocess:
                     if process_memory['id'] not in to_reprocess:
                         instance_filters = process_memory_api.get_instance_filter(process_memory['id'])
                         for entity in entities:
-                            if entity['__table__'] in reprocessable_tables_grouped_by_tags[
-                                process_memory['tag']].values():
-                                current_app.logger.debug(f"testing domain reader with {entity['__type__']}")
+                            import pdb; pdb.set_trace()
+                            if entity['_metadata']['table'] in reprocessable_tables_grouped_by_tags[process_memory['tag']]:
+                                import pdb; pdb.set_trace()
+                                # current_app.logger.debug(f"testing domain reader with {entity['__type__']}")
                                 if would_instance_use_entity(entity, instance_filters):
                                     to_reprocess.append(process_memory['id'])
             return to_reprocess
