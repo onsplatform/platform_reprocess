@@ -18,7 +18,6 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
             current_app.logger.debug(f'getting entities from pm')
             process_memory_entities = process_memory_api.get_entities(instance_id)
             current_app.logger.debug(f'getting entities to reprocess')
-            import pdb; pdb.set_trace()
             entities_to_reprocess = EntitiesToReprocess.get_entities_to_reprocess(process_memory_entities)
             current_app.logger.debug(f'getting pm to reprocess')
             process_memories_to_reprocess = get_process_memories_to_reprocess(instance_id, entities_to_reprocess)
