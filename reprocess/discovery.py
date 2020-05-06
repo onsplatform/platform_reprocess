@@ -63,7 +63,7 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
             reprocessable_tables_grouped_by_tags = domain_schema.get_reprocessable_tables_grouped_by_tags(
                 {'types': [entity['_metadata']['type'] for entity in entities], "tag": f"{active_event['header']['image']}"})
 
-            current_app.logger.debug(f'getting process memories that used those entities count: {len(entities)}')
+            current_app.logger.debug(f'getting process memories that used those entities')
 
             to_reprocess = process_memory_api.get_using_entities(
                 {'entities': [entity['id'] for entity in entities],
@@ -90,7 +90,7 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
                         # memories_will_have_filters_tested[process_memory['id']].update((entity for entity in entities if entity['_metadata']['table'] in reprocessable_tables_grouped_by_tags[process_memory['tag']]))
                         # { '4a716eb8-12f9-409b-9732-549585090f61': { 'unidadegeradora': 'e_unidadegeradora' }}
                         for entity in entities:
-                            if entity['_metadata']['table'] in reprocessable_tables_grouped_by_tags[process_memory['image']]: 
+                            if entity['_metadata']['table'] in reprocessable_tables_grouped_by_tags[process_memory['tag']]: 
 
                                  # entities_in_process_memory = {  'unidadegeradora': 'e_unidadegeradora', 'usina': 'e_usi' }}
                                 entities_in_process_memory = memories_will_have_filters_tested[process_memory['id']] 
@@ -101,14 +101,14 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
                                 memories_will_have_filters_tested.update({process_memory['id']: entities_in_process_memory})
                 
                 # Somente memórias que possuirem entidades/tabelas reprocessáveis serão válidas para reprocessamento
-                memories_will_have_filters_tested = {k: v for k, v in memories_will_have_filters_tested if len(v) > 0}        
+                memories_will_have_filters_tested = {k: list(v) for k, v in memories_will_have_filters_tested.items() if len(v) > 0}        
 
-                if len(memories_will_have_filters_tested > 0):
+                if len(memories_will_have_filters_tested) > 0:
                     # parametros { instancia: entidade: tabela }
                     # exemplo de parametros { '4a716eb8-12f9-409b-9732-549585090f61': { 'unidadegeradora', 'evento' }, .... }
                     instances_filters = process_memory_api.get_instance_filters_by_instance_ids_and_types(memories_will_have_filters_tested)
                     instances_ids_would_use_reprocessable_entity = would_instances_use_entities(entities, instances_filters)
-                    to_reprocess.append(instances_ids_would_use_reprocessable_entity)
+                    to_reprocess.extend(instances_ids_would_use_reprocessable_entity)
             return to_reprocess
 
     def would_instance_use_entity(entity, instance_filters):
@@ -139,7 +139,7 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
             {
                 'instance_id': filter['header']['instanceId'],
                 'app': filter['app'], 
-                'version': filter['version'], 
+                'version': filter['header']['version'], 
                 'type': filter['type'], 
                 'filter_name': filter['filter_name'], 
                 'params': filter['params']
