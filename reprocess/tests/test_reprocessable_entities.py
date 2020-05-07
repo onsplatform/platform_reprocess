@@ -13,4 +13,4 @@ class ReprocessableEntitiesTest(unittest.TestCase):
         entities_to_reprocess = EntitiesToReprocess().get_entities_to_reprocess(entities)
 
         # assert
-        assert len(entities_to_reprocess) == 3
+        assert len(entities_to_reprocess) == 4

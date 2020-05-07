@@ -15,6 +15,4 @@ class EntitiesToReprocess():
     def _need_to_reprocess(entity):
         metadata = entity['_metadata']
         return ('changeTrack' in metadata and
-                'reprocessable' in metadata and
-                metadata['reprocessable'] and
                 metadata['changeTrack'] in ['create', 'destroy', 'update'])

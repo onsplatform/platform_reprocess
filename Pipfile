@@ -8,9 +8,10 @@ pytest = "*"
 
 [packages]
 flask = "*"
-ons-platform-python-sdk = {ref = "coreapi_integration",git = "https://github.com/onsplatform/platform_sdk.git",editable = true}
+ons-platform-python-sdk = {editable = true,git = "https://github.com/onsplatform/platform_sdk.git",ref = "reprocess_config"}
 pika = "*"
 gunicorn = "*"
+pytest = "*"
 
 [requires]
 python_version = "3.7"
