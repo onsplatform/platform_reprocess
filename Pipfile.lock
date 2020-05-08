@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "a0e8171efaf25c5117867d7ae4803c362a004b9b226c22fbcf1acdbb1400f529"
+            "sha256": "1291b0d1973f07530095a3364ffb5f39c86cfaaf346d072b04cfa3de4c5388c7"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -142,7 +142,7 @@
         "ons-platform-python-sdk": {
             "editable": true,
             "git": "https://github.com/onsplatform/platform_sdk.git",
-            "ref": "d2091b77f93cfee22d9e6e9a68ff0cdb31677efa"
+            "ref": "9f79721a6789f7355fd0cb960d9968d7aaf10611"
         },
         "packaging": {
             "hashes": [
@@ -188,11 +188,11 @@
         },
         "pytest": {
             "hashes": [
-                "sha256:0e5b30f5cb04e887b91b1ee519fa3d89049595f428c1db76e73bd7f17b09b172",
-                "sha256:84dde37075b8805f3d1f392cc47e38a0e59518fb46a431cfdaf7cf1ce805f970"
+                "sha256:95c710d0a72d91c13fae35dce195633c929c3792f54125919847fdcdf7caa0d3",
+                "sha256:eb2b5e935f6a019317e455b6da83dd8650ac9ffd2ee73a7b657a30873d67a698"
             ],
             "index": "pypi",
-            "version": "==5.4.1"
+            "version": "==5.4.2"
         },
         "requests": {
             "hashes": [
@@ -306,11 +306,11 @@
         },
         "pytest": {
             "hashes": [
-                "sha256:0e5b30f5cb04e887b91b1ee519fa3d89049595f428c1db76e73bd7f17b09b172",
-                "sha256:84dde37075b8805f3d1f392cc47e38a0e59518fb46a431cfdaf7cf1ce805f970"
+                "sha256:95c710d0a72d91c13fae35dce195633c929c3792f54125919847fdcdf7caa0d3",
+                "sha256:eb2b5e935f6a019317e455b6da83dd8650ac9ffd2ee73a7b657a30873d67a698"
             ],
             "index": "pypi",
-            "version": "==5.4.1"
+            "version": "==5.4.2"
         },
         "six": {
             "hashes": [
