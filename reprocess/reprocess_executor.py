@@ -31,13 +31,13 @@ class ReprocessExecutor:
     def reprocess(self):
         events = self.get_all_messages_without_dequeue()
 
-        method_frame, header_frame, body = self.reprocess_exec.dequeue()
-
-        if body:
-            event = json.loads(body)
-
+        if events:
+            current_body = events[0]
+            event = json.loads(current_body)
             solution = self.schema.get_solution_by_name(event['solution'])
+
             if not self.schema.is_reprocessing(solution['id']):
+                self.reprocess_exec.dequeue()
                 if not self.message_is_repeated(events, event):
                     self.event_manager.send_event(event['event'])
                     print(" [x] Reprocessing %r" % event)
