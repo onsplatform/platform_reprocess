@@ -32,13 +32,13 @@ class ReprocessExecutor:
         events = self.get_all_messages_without_dequeue()
 
         method_frame, header_frame, body = self.reprocess_exec.dequeue()
+
         if body:
             event = json.loads(body)
 
             solution = self.schema.get_solution_by_name(event['solution'])
             if not self.schema.is_reprocessing(solution['id']):
-                if not self.message_is_repeated(events, body):
-                    event = json.loads(body)
+                if not self.message_is_repeated(events, event):
                     self.event_manager.send_event(event['event'])
                     print(" [x] Reprocessing %r" % event)
                 else:
@@ -64,8 +64,9 @@ class ReprocessExecutor:
         messages = list()   
         while True : 
             method_frame, header_frame, body = self.reprocess_check.check_next_message()
-            if method_frame:
-                messages.append(body)
+            if body:
+                event = json.loads(body)
+                messages.append(event)
             else :
                 break
         self.reprocess_check.close()
