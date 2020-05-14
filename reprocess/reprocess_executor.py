@@ -13,7 +13,7 @@ class ReprocessExecutor:
         self.reprocess_check = ReprocessQueue('reprocess_queue', solution, reprocess_settings)
         self.reprocess_exec = ReprocessQueue('reprocess_queue', solution, reprocess_settings)
 
-    def reprocess(self):
+    def reprocess2(self):
         method_frame, header_frame, body = self.reprocess_check.check_next_message()
         if body:
             print(" [ ] Can it reprocess? %r" % body)
@@ -25,6 +25,29 @@ class ReprocessExecutor:
                 event = json.loads(body)
                 self.event_manager.send_event(event['event'])
                 print(" [x] Reprocessing %r" % event)
+        else:
+            print('Nothing to do...')
+    
+    def reprocess(self):
+        method_frame, header_frame, body = self.reprocess_check.check_next_message()
+
+        # Proxima mensagem da fila auxiliar - OK
+        if body:
+            print(" [ ] Can it reprocess? %r" % body)
+            event = json.loads(body)
+            solution = self.schema.get_solution_by_name(event['solution'])
+            
+            # verifica se solucao esta reprocessando - OK
+            if not self.schema.is_reprocessing(solution['id']):
+                teste = list()
+                while True : 
+                    method_frame, header_frame, body = self.reprocess_check.check_next_message()
+                    if method_frame:
+                        teste.append(body)
+                    else :
+                        break #breaking the loop
+                print(teste)
+                self.schema.close()
         else:
             print('Nothing to do...')
 
