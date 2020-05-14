@@ -58,11 +58,11 @@ class ReprocessExecutor:
                     return True
 
     def get_all_messages_without_dequeue(self):
-        messages = list()
+        messages = list()   
         while True : 
             method_frame, header_frame, body = self.reprocess_check.check_next_message()
             if method_frame:
-                messages.append(dict(body))
+                messages.append(body)
             else :
                 break
         self.reprocess_check.close()
