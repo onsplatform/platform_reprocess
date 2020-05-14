@@ -29,27 +29,17 @@ class ReprocessExecutor:
             print('Nothing to do...')
     
     def reprocess(self):
-        method_frame, header_frame, body = self.reprocess_check.check_next_message()
+        eventos = list()
+        while True : 
+            method_frame, header_frame, body = self.reprocess_check.check_next_message()
+            if method_frame:
+                eventos.append(body)
+            else :
+                break
+        self.reprocess_check.close()
 
-        # Proxima mensagem da fila auxiliar - OK
-        if body:
-            print(" [ ] Can it reprocess? %r" % body)
-            event = json.loads(body)
-            solution = self.schema.get_solution_by_name(event['solution'])
-            
-            # verifica se solucao esta reprocessando - OK
-            if not self.schema.is_reprocessing(solution['id']):
-                teste = list()
-                while True : 
-                    method_frame, header_frame, body = self.reprocess_check.check_next_message()
-                    if method_frame:
-                        teste.append(body)
-                    else :
-                        break #breaking the loop
-                print(teste)
-                self.reprocess_check.close()
-        else:
-            print('Nothing to do...')
+        print("eventos abaixo")
+        print(eventos)
 
 
 
