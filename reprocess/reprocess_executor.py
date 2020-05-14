@@ -47,7 +47,7 @@ class ReprocessExecutor:
                     else :
                         break #breaking the loop
                 print(teste)
-                self.schema.close()
+                self.reprocess_check.close()
         else:
             print('Nothing to do...')
 
