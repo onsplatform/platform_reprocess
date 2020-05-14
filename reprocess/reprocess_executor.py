@@ -36,7 +36,7 @@ class ReprocessExecutor:
 
         solution = self.schema.get_solution_by_name(event['solution'])
         if not self.schema.is_reprocessing(solution['id']):
-            if not self.message_is_repeated(events, dict(body)):
+            if not self.message_is_repeated(events, body):
                 event = json.loads(body)
                 self.event_manager.send_event(event['event'])
                 print(" [x] Reprocessing %r" % event)
