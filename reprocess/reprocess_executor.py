@@ -32,8 +32,7 @@ class ReprocessExecutor:
         events = self.get_all_messages_without_dequeue()
 
         if events:
-            current_body = events[0]
-            event = json.loads(current_body)
+            event =  events[0]
             solution = self.schema.get_solution_by_name(event['solution'])
 
             if not self.schema.is_reprocessing(solution['id']):
