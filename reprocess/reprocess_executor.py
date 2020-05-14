@@ -53,9 +53,9 @@ class ReprocessExecutor:
     def message_is_repeated(self, messages, message):
         count_equal = 0
         for messages_item in messages:
-            if messages_item.event.name == message.event.name\
-            and messages_item.event.header.referenceDate == message.event.header.referenceDate\
-            and messages_item.event.payload == message.event.payload:
+            if messages_item['event']['name'] == message['event']['name']\
+            and messages_item['event']['header']['referenceDate'] == message['event']['header']['referenceDate'] \
+            and messages_item['event']['payload'] == message['event']['payload']:
                 count_equal = count_equal + 1
                 if count_equal > 1:
                     return True
