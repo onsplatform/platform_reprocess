@@ -18,11 +18,11 @@ class ReprocessExecutor:
         if body:
             print(" [ ] Can it reprocess? %r" % body)
             event = json.loads(body)
-            if not self.schema.is_reprocessing(event['solution']):
+            solution = self.schema.get_solution_by_name(event['solution'])
+            if not self.schema.is_reprocessing(solution['id']):
                 self.reprocess_check.close()
                 method_frame, header_frame, body = self.reprocess_exec.dequeue()
                 event = json.loads(body)
-                self.schema.set_reprocessing(event['solution'])
                 self.event_manager.send_event(event['event'])
                 print(" [x] Reprocessing %r" % event)
         else:
