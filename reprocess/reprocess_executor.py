@@ -29,17 +29,44 @@ class ReprocessExecutor:
             print('Nothing to do...')
     
     def reprocess(self):
-        eventos = list()
+        events = self.get_all_messages_without_dequeue()
+
+        method_frame, header_frame, body = self.reprocess_exec.dequeue()
+        event = json.loads(body)
+
+        solution = self.schema.get_solution_by_name(event['solution'])
+        if not self.schema.is_reprocessing(solution['id']):
+            if not self.message_is_repeated(events, dict(body)):
+                event = json.loads(body)
+                self.event_manager.send_event(event['event'])
+                print(" [x] Reprocessing %r" % event)
+            else:
+                print(" [x] Discarded - Repeated message  in queue: %r" % event)
+                print(" Getting next message..")
+                self.reprocess()
+        else:
+            print(f' Solution is already being reprocessed, retry will occur soon...')
+
+    def message_is_repeated(self, messages, message):
+        count_equal = 0
+        for messages_item in messages:
+            if messages_item.event.name == message.event.name\
+            and messages_item.event.header.referenceDate == message.event.header.referenceDate\
+            and messages_item.event.payload == message.event.payload:
+                count_equal = count_equal + 1
+                if count_equal > 1:
+                    return True
+
+    def get_all_messages_without_dequeue(self):
+        messages = list()
         while True : 
             method_frame, header_frame, body = self.reprocess_check.check_next_message()
             if method_frame:
-                eventos.append(body)
+                messages.append(dict(body))
             else :
                 break
         self.reprocess_check.close()
-
-        print("eventos abaixo")
-        print(eventos)
+        return messages
 
 
 
