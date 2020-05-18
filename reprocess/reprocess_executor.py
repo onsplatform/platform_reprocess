@@ -8,6 +8,8 @@ from platform_sdk.event_manager import EventManager
 class ReprocessExecutor:
 
     def __init__(self, schema, event_manager, solution, reprocess_settings):
+        self.solution = solution
+        self.reprocess_settings = reprocess_settings
         self.schema = schema
         self.event_manager = event_manager
         self.reprocess_check = ReprocessQueue('reprocess_queue', solution, reprocess_settings)
@@ -30,8 +32,8 @@ class ReprocessExecutor:
     
     def reprocess(self):
         events = self.get_all_messages_without_dequeue()
-        self.reprocess_check = ReprocessQueue('reprocess_queue', solution, reprocess_settings)
-        
+        self.reprocess_check = ReprocessQueue('reprocess_queue', self.solution, self.reprocess_settings)
+
         if events:
             event =  events[0]
             solution = self.schema.get_solution_by_name(event['solution'])
