@@ -30,7 +30,8 @@ class ReprocessExecutor:
     
     def reprocess(self):
         events = self.get_all_messages_without_dequeue()
-
+        self.reprocess_check = ReprocessQueue('reprocess_queue', solution, reprocess_settings)
+        
         if events:
             event =  events[0]
             solution = self.schema.get_solution_by_name(event['solution'])
@@ -41,7 +42,7 @@ class ReprocessExecutor:
                     self.event_manager.send_event(event['event'])
                     print(" [x] Reprocessing %r" % event)
                 else:
-                    print(" [x] Discarded - Repeated message  in queue: %r" % event)
+                    print(" [x] Discarded - Repeated message in queue: %r" % event)
                     print(" Getting next message..")
                     self.reprocess()
             else:
@@ -50,6 +51,7 @@ class ReprocessExecutor:
             print('Nothing to do...')
 
     def message_is_repeated(self, messages, message):
+        # Verificar se é necessário incluir a tag da process_memory na verificacao
         count_equal = 0
         for messages_item in messages:
             if messages_item['event']['name'] == message['event']['name']\
