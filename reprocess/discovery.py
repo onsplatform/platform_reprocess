@@ -78,6 +78,9 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
             # encontrar instâncias de processo das seguintes tags que fizeram queries nas tabelas informadas para aquela tag (entidades reprocessáveis)
             process_memories_could_reprocess = process_memory_api.get_by_tags(reprocessable_tables_grouped_by_tags)
 
+            if process_memories_could_reprocess:
+                process_memories_could_reprocess = [item for item in process_memories_could_reprocess if item['id'] != instance_id]
+
             current_app.logger.debug(
                 f'process memories could reprocess before filter check: {process_memories_could_reprocess}')
             
