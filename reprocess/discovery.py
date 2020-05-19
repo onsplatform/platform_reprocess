@@ -22,7 +22,7 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
             current_app.logger.debug(entities_to_reprocess)
             current_app.logger.debug(f'getting pm to reprocess')
             process_memories_to_reprocess = get_process_memories_to_reprocess(instance_id, entities_to_reprocess)
-            process_memories_to_reprocess = order_by_reference_date(process_memories_to_reprocess)
+            process_memories_to_reprocess = order_by_reference_date_and_remove_loop(process_memories_to_reprocess, instance_id)
             
             queue_process_memories_to_reprocess(instance_id, process_memories_to_reprocess, solution)
         return make_response('', 200)
@@ -44,14 +44,21 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
 
         return make_response('', 200)
 
-    def order_by_reference_date(process_memories_ids):
+    def order_by_reference_date_and_remove_loop(process_memories_ids, instance_id):
         # TODO: Melhorar performance
-        pms = list()
-        for pm_id in process_memories_ids:
-            event = process_memory_api.get_event(pm_id)
-            pms.append(event)
-        pms_sorted = sorted(pms, key=lambda k: k['referenceDate']) 
-        return [item['header']['instanceId'] for item in pms_sorted]
+        active_event = process_memory_api.get_event(instance_id)
+        if process_memories_ids:
+            pms = list()
+            for pm_id in process_memories_ids:
+                event = process_memory_api.get_event(pm_id)
+                if not (event['name'] == active_event['name']\
+                    and event['header']['referenceDate'] == active_event['header']['referenceDate'] \
+                    and event['payload'] == active_event['payload']\
+                    and event['header']['image'] == active_event['header']['image']):
+                    pms.append(event)
+            pms_sorted = sorted(pms, key=lambda k: k['referenceDate']) 
+            return [item['header']['instanceId'] for item in pms_sorted]
+        return process_memories_ids
 
     def queue_process_memories_to_reprocess(instance_id, process_memories_to_reprocess, solution):
         if process_memories_to_reprocess:
