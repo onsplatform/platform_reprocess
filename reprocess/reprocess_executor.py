@@ -31,6 +31,7 @@ class ReprocessExecutor:
             print('Nothing to do...')
     
     def reprocess(self):
+        self.reprocess_check = ReprocessQueue('reprocess_queue', self.solution, self.reprocess_settings)
         events = self.get_all_messages_without_dequeue()
         self.reprocess_check = ReprocessQueue('reprocess_queue', self.solution, self.reprocess_settings)
 
@@ -48,7 +49,11 @@ class ReprocessExecutor:
                     print(" Getting next message..")
                     self.reprocess()
             else:
+                self.reprocess_check = ReprocessQueue('reprocess_queue', self.solution, self.reprocess_settings)
+                events = self.get_all_messages_without_dequeue()
+                self.reprocess_check = ReprocessQueue('reprocess_queue', self.solution, self.reprocess_settings)
                 print(f' Solution is already being reprocessed, retry will occur soon...')
+                print(f'Queue now: {events}')
         else:
             print('Nothing to do...')
 
