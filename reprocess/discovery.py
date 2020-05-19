@@ -22,6 +22,8 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
             current_app.logger.debug(entities_to_reprocess)
             current_app.logger.debug(f'getting pm to reprocess')
             process_memories_to_reprocess = get_process_memories_to_reprocess(instance_id, entities_to_reprocess)
+            process_memories_to_reprocess = order_by_reference_date(process_memories_to_reprocess)
+            
             queue_process_memories_to_reprocess(instance_id, process_memories_to_reprocess, solution)
         return make_response('', 200)
 
@@ -41,6 +43,15 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
             queue_process_memories_to_reprocess(None, instances_to_reprocess, solution)
 
         return make_response('', 200)
+
+    def order_by_reference_date(process_memories_ids):
+        # TODO: Melhorar performance
+        pms = list()
+        for pm_id in process_memories_ids:
+            event = process_memory_api.get_event(pm_id)
+            pms.append(event)
+        pms_sorted = sorted(pms, key=lambda k: k['referenceDate']) 
+        return [item['header']['instanceId'] for item in pms_sorted]
 
     def queue_process_memories_to_reprocess(instance_id, process_memories_to_reprocess, solution):
         if process_memories_to_reprocess:
@@ -106,7 +117,7 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
                 
                 # Somente memórias que possuirem entidades/tabelas reprocessáveis serão válidas para reprocessamento
                 memories_will_have_filters_tested = {k: list(v) for k, v in memories_will_have_filters_tested.items() if len(v) > 0}        
-
+                
                 if len(memories_will_have_filters_tested) > 0:
                     # parametros { instancia: entidade: tabela }
                     # exemplo de parametros { '4a716eb8-12f9-409b-9732-549585090f61': { 'unidadegeradora', 'evento' }, .... }
