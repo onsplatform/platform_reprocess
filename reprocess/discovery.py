@@ -19,8 +19,11 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
             process_memory_entities = process_memory_api.get_entities(instance_id)
             current_app.logger.debug(f'getting entities to reprocess')
             entities_to_reprocess = EntitiesToReprocess.get_entities_to_reprocess(process_memory_entities)
+            current_app.logger.debug(entities_to_reprocess)
             current_app.logger.debug(f'getting pm to reprocess')
             process_memories_to_reprocess = get_process_memories_to_reprocess(instance_id, entities_to_reprocess)
+            process_memories_to_reprocess = order_by_reference_date_and_remove_loop(process_memories_to_reprocess, instance_id)
+            
             queue_process_memories_to_reprocess(instance_id, process_memories_to_reprocess, solution)
         return make_response('', 200)
 
@@ -40,6 +43,22 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
             queue_process_memories_to_reprocess(None, instances_to_reprocess, solution)
 
         return make_response('', 200)
+
+    def order_by_reference_date_and_remove_loop(process_memories_ids, instance_id):
+        # TODO: Melhorar performance
+        active_event = process_memory_api.get_event(instance_id)
+        if process_memories_ids:
+            pms = list()
+            for pm_id in process_memories_ids:
+                event = process_memory_api.get_event(pm_id)
+                if not (event['name'] == active_event['name']\
+                    and event['header']['referenceDate'] == active_event['header']['referenceDate'] \
+                    and event['payload'] == active_event['payload']\
+                    and event['header']['image'] == active_event['header']['image']):
+                    pms.append(event)
+            pms_sorted = sorted(pms, key=lambda k: k['referenceDate']) 
+            return [item['header']['instanceId'] for item in pms_sorted]
+        return process_memories_ids
 
     def queue_process_memories_to_reprocess(instance_id, process_memories_to_reprocess, solution):
         if process_memories_to_reprocess:
@@ -77,6 +96,9 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
             # encontrar instâncias de processo das seguintes tags que fizeram queries nas tabelas informadas para aquela tag (entidades reprocessáveis)
             process_memories_could_reprocess = process_memory_api.get_by_tags(reprocessable_tables_grouped_by_tags)
 
+            if process_memories_could_reprocess:
+                process_memories_could_reprocess = [item for item in process_memories_could_reprocess if item['id'] != instance_id]
+
             current_app.logger.debug(
                 f'process memories could reprocess before filter check: {process_memories_could_reprocess}')
             
@@ -102,7 +124,7 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
                 
                 # Somente memórias que possuirem entidades/tabelas reprocessáveis serão válidas para reprocessamento
                 memories_will_have_filters_tested = {k: list(v) for k, v in memories_will_have_filters_tested.items() if len(v) > 0}        
-
+                
                 if len(memories_will_have_filters_tested) > 0:
                     # parametros { instancia: entidade: tabela }
                     # exemplo de parametros { '4a716eb8-12f9-409b-9732-549585090f61': { 'unidadegeradora', 'evento' }, .... }
