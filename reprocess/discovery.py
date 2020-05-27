@@ -130,7 +130,8 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
                     # exemplo de parametros { '4a716eb8-12f9-409b-9732-549585090f61': { 'unidadegeradora', 'evento' }, .... }
                     instances_filters = process_memory_api.get_instance_filters_by_instance_ids_and_types(memories_will_have_filters_tested)
                     instances_ids_would_use_reprocessable_entity = would_instances_use_entities(entities, instances_filters)
-                    to_reprocess.extend(instances_ids_would_use_reprocessable_entity)
+                    if instances_ids_would_use_reprocessable_entity:
+                        to_reprocess.extend(instances_ids_would_use_reprocessable_entity)
             return to_reprocess
 
     def would_instance_use_entity(entity, instance_filters):
