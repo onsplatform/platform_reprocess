@@ -40,7 +40,7 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
                                                                              date_end_validity)
         current_app.logger.debug(f'instances found: {instances_to_reprocess}')
         if solution and app and instances_to_reprocess:
-            queue_process_memories_to_reprocess(None, instances_to_reprocess, solution)
+            queue_process_memories_to_reprocess("deploy", instances_to_reprocess, solution)
 
         return make_response('', 200)
 
