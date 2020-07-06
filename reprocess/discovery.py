@@ -67,7 +67,7 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
                 current_app.logger.debug(f'reprocessing: ' + json.dumps(process_memory_to_reprocess))
                 event = process_memory_api.get_event(process_memory_to_reprocess)
 
-                originalInstanceId = event['reprocessing']['originalInstanceId']
+                originalInstanceId = event['reprocessing'].get('originalInstanceId')
                 if not originalInstanceId:
                     originalInstanceId = event['instanceId']
 
