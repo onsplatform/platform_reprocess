@@ -66,9 +66,15 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
             for process_memory_to_reprocess in [pm for pm in process_memories_to_reprocess if pm != instance_id]:
                 current_app.logger.debug(f'reprocessing: ' + json.dumps(process_memory_to_reprocess))
                 event = process_memory_api.get_event(process_memory_to_reprocess)
+
+                originalInstanceId = event['reprocessing']['originalInstanceId']
+                if not originalInstanceId:
+                    originalInstanceId = event['instanceId']
+
                 event['scope'] = 'reprocessing'
                 event['reprocessing'] = {
                     'instance_id': instance_id,
+                    'originalInstanceId': originalInstanceId,
                     'from': instance_id
                 }
                 reprocess_queue.enqueue(process_memory_to_reprocess, {
@@ -92,7 +98,7 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
 
             current_app.logger.debug(f'process memories to reprocess: {to_reprocess}')
             current_app.logger.debug(f'getting process memories that used those entities types')
-
+            
             # encontrar instâncias de processo das seguintes tags que fizeram queries nas tabelas informadas para aquela tag (entidades reprocessáveis)
             process_memories_could_reprocess = process_memory_api.get_by_tags(reprocessable_tables_grouped_by_tags)
 
