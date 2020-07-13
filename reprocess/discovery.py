@@ -56,8 +56,8 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema, core_m
         current_app.logger.debug(
             f'force reprocess to: {solution} app: {app} process_id: {process_id} dates: {date_begin_validity} - {date_end_validity}')
         instances_to_reprocess = [pm for pm in
-                                  process_memory_api.get_events_between_dates(process_id, date_begin_validity,
-                                                                              date_end_validity) if
+                                  process_memory_api.get_current_events_between_dates(process_id, date_begin_validity,
+                                                                                      date_end_validity) if
                                   pm['event']['name'] in reprocessable_operation]
 
         current_app.logger.debug(f'instances found: {instances_to_reprocess}')

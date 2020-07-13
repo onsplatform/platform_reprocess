@@ -14,21 +14,6 @@ class ReprocessExecutor:
         self.event_manager = event_manager
         self.reprocess_check = ReprocessQueue('reprocess_queue', solution, reprocess_settings)
         self.reprocess_exec = ReprocessQueue('reprocess_queue', solution, reprocess_settings)
-
-    def reprocess2(self):
-        method_frame, header_frame, body = self.reprocess_check.check_next_message()
-        if body:
-            print(" [ ] Can it reprocess? %r" % body)
-            event = json.loads(body)
-            solution = self.schema.get_solution_by_name(event['solution'])
-            if not self.schema.is_reprocessing(solution['id']):
-                self.reprocess_check.close()
-                method_frame, header_frame, body = self.reprocess_exec.dequeue()
-                event = json.loads(body)
-                self.event_manager.send_event(event['event'])
-                print(" [x] Reprocessing %r" % event)
-        else:
-            print('Nothing to do...')
     
     def reprocess(self):
         self.reprocess_check = ReprocessQueue('reprocess_queue', self.solution, self.reprocess_settings)
