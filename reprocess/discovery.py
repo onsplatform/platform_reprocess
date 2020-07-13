@@ -1,12 +1,14 @@
 import json
+
 from flask import current_app as current_app
 from flask import Blueprint, request, make_response
+
 from reprocess.settings import REPROCESS_SETTINGS
 from reprocess.reprocess_queue import ReprocessQueue
 from reprocess.entities_to_reprocess import EntitiesToReprocess
 
 
-def construct_blueprint(process_memory_api, domain_reader, domain_schema):
+def construct_blueprint(process_memory_api, domain_reader, domain_schema, core_metadata_api):
     discovery_blueprint = Blueprint('discovery', __name__, url_prefix='/discovery')
 
     @discovery_blueprint.route('/check', methods=['POST'])
@@ -22,8 +24,9 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
             current_app.logger.debug(entities_to_reprocess)
             current_app.logger.debug(f'getting pm to reprocess')
             process_memories_to_reprocess = get_process_memories_to_reprocess(instance_id, entities_to_reprocess)
-            process_memories_to_reprocess = order_by_reference_date_and_remove_loop(process_memories_to_reprocess, instance_id)
-            
+            process_memories_to_reprocess = order_by_reference_date_and_remove_loop(process_memories_to_reprocess,
+                                                                                    instance_id)
+
             queue_process_memories_to_reprocess(instance_id, process_memories_to_reprocess, solution)
         return make_response('', 200)
 
@@ -34,10 +37,29 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
         process_id = request.json['process_id']
         date_begin_validity = request.json['date_begin_validity']
         date_end_validity = request.json['date_end_validity']
+        sorted_operations = sorted(core_metadata_api.find_by_process_id(process_id), key=lambda k: k['modified'],
+                                   reverse=True)
+
+        current_operations = {}
+        for operation in sorted_operations:
+            if operation['name'] not in current_operations:
+                current_operations[operation['name']] = operation
+
+        reprocessable_operation = []
+        for operation_name in current_operations.keys():
+            if current_operations[operation_name]['reprocessable']:
+                reprocessable_operation.append(current_operations[operation_name])
+
+        if not reprocessable_operation:
+            return make_response('', 200)
+
         current_app.logger.debug(
             f'force reprocess to: {solution} app: {app} process_id: {process_id} dates: {date_begin_validity} - {date_end_validity}')
-        instances_to_reprocess = process_memory_api.get_events_between_dates(process_id, date_begin_validity,
-                                                                             date_end_validity)
+        instances_to_reprocess = [pm for pm in
+                                  process_memory_api.get_events_between_dates(process_id, date_begin_validity,
+                                                                              date_end_validity) if
+                                  pm['event']['name'] in reprocessable_operation]
+
         current_app.logger.debug(f'instances found: {instances_to_reprocess}')
         if solution and app and instances_to_reprocess:
             queue_process_memories_to_reprocess("deploy", instances_to_reprocess, solution)
@@ -51,12 +73,12 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
             pms = list()
             for pm_id in process_memories_ids:
                 event = process_memory_api.get_event(pm_id)
-                if not (event['name'] == active_event['name']\
-                    and event['header']['referenceDate'] == active_event['header']['referenceDate'] \
-                    and event['payload'] == active_event['payload']\
-                    and event['header']['image'] == active_event['header']['image']):
+                if not (event['name'] == active_event['name'] \
+                        and event['header']['referenceDate'] == active_event['header']['referenceDate'] \
+                        and event['payload'] == active_event['payload'] \
+                        and event['header']['image'] == active_event['header']['image']):
                     pms.append(event)
-            pms_sorted = sorted(pms, key=lambda k: k['referenceDate']) 
+            pms_sorted = sorted(pms, key=lambda k: k['referenceDate'])
             return [item['header']['instanceId'] for item in pms_sorted]
         return process_memories_ids
 
@@ -86,7 +108,8 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
         if entities:
             active_event = process_memory_api.get_event(instance_id)
             reprocessable_tables_grouped_by_tags = domain_schema.get_reprocessable_tables_grouped_by_tags(
-                {'types': [entity['_metadata']['type'] for entity in entities], "tag": f"{active_event['header']['image']}"})
+                {'types': [entity['_metadata']['type'] for entity in entities],
+                 "tag": f"{active_event['header']['image']}"})
 
             current_app.logger.debug(f'getting process memories that used those entities')
 
@@ -98,16 +121,17 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
 
             current_app.logger.debug(f'process memories to reprocess: {to_reprocess}')
             current_app.logger.debug(f'getting process memories that used those entities types')
-            
+
             # encontrar instâncias de processo das seguintes tags que fizeram queries nas tabelas informadas para aquela tag (entidades reprocessáveis)
             process_memories_could_reprocess = process_memory_api.get_by_tags(reprocessable_tables_grouped_by_tags)
 
             if process_memories_could_reprocess:
-                process_memories_could_reprocess = [item for item in process_memories_could_reprocess if item['id'] != instance_id]
+                process_memories_could_reprocess = [item for item in process_memories_could_reprocess if
+                                                    item['id'] != instance_id]
 
             current_app.logger.debug(
                 f'process memories could reprocess before filter check: {process_memories_could_reprocess}')
-            
+
             if process_memories_could_reprocess:
                 memories_will_have_filters_tested = dict()
                 for process_memory in process_memories_could_reprocess:
@@ -118,24 +142,28 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
                         # memories_will_have_filters_tested[process_memory['id']].update((entity for entity in entities if entity['_metadata']['table'] in reprocessable_tables_grouped_by_tags[process_memory['tag']]))
                         # { '4a716eb8-12f9-409b-9732-549585090f61': { 'unidadegeradora': 'e_unidadegeradora' }}
                         for entity in entities:
-                            if entity['_metadata']['table'] in reprocessable_tables_grouped_by_tags[process_memory['tag']]: 
+                            if entity['_metadata']['table'] in reprocessable_tables_grouped_by_tags[
+                                process_memory['tag']]:
+                                # entities_in_process_memory = {  'unidadegeradora': 'e_unidadegeradora', 'usina': 'e_usi' }}
+                                entities_in_process_memory = memories_will_have_filters_tested[process_memory['id']]
 
-                                 # entities_in_process_memory = {  'unidadegeradora': 'e_unidadegeradora', 'usina': 'e_usi' }}
-                                entities_in_process_memory = memories_will_have_filters_tested[process_memory['id']] 
+                                # entities_in_process_memory = {  'unidadegeradora': 'e_unidadegeradora', 'usina': 'e_usi', 'calculo': 'e-calculo' }}
+                                entities_in_process_memory.add(entity['_metadata']['type'])
 
-                                 # entities_in_process_memory = {  'unidadegeradora': 'e_unidadegeradora', 'usina': 'e_usi', 'calculo': 'e-calculo' }}
-                                entities_in_process_memory.add(entity['_metadata']['type'])  
+                                memories_will_have_filters_tested.update(
+                                    {process_memory['id']: entities_in_process_memory})
 
-                                memories_will_have_filters_tested.update({process_memory['id']: entities_in_process_memory})
-                
                 # Somente memórias que possuirem entidades/tabelas reprocessáveis serão válidas para reprocessamento
-                memories_will_have_filters_tested = {k: list(v) for k, v in memories_will_have_filters_tested.items() if len(v) > 0}        
-                
+                memories_will_have_filters_tested = {k: list(v) for k, v in memories_will_have_filters_tested.items() if
+                                                     len(v) > 0}
+
                 if len(memories_will_have_filters_tested) > 0:
                     # parametros { instancia: entidade: tabela }
                     # exemplo de parametros { '4a716eb8-12f9-409b-9732-549585090f61': { 'unidadegeradora', 'evento' }, .... }
-                    instances_filters = process_memory_api.get_instance_filters_by_instance_ids_and_types(memories_will_have_filters_tested)
-                    instances_ids_would_use_reprocessable_entity = would_instances_use_entities(entities, instances_filters)
+                    instances_filters = process_memory_api.get_instance_filters_by_instance_ids_and_types(
+                        memories_will_have_filters_tested)
+                    instances_ids_would_use_reprocessable_entity = would_instances_use_entities(entities,
+                                                                                                instances_filters)
                     if instances_ids_would_use_reprocessable_entity:
                         to_reprocess.extend(instances_ids_would_use_reprocessable_entity)
             return to_reprocess
@@ -164,19 +192,19 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema):
         for filter in instance_filters:
             filter['params']['branch'] = filter['branch']
 
-        instances_filters_treated = [   
+        instances_filters_treated = [
             {
                 'instance_id': filter['header']['instanceId'],
-                'app': filter['app'], 
-                'version': filter['header']['version'], 
-                'type': filter['type'], 
-                'filter_name': filter['filter_name'], 
+                'app': filter['app'],
+                'version': filter['header']['version'],
+                'type': filter['type'],
+                'filter_name': filter['filter_name'],
                 'params': filter['params']
             } for filter in instance_filters]
 
-        instancesIds = domain_reader.instances_which_queries_would_find_any_touched_entity(entities, instances_filters_treated)
+        instancesIds = domain_reader.instances_which_queries_would_find_any_touched_entity(entities,
+                                                                                           instances_filters_treated)
         # Exemplo de retorno esperado: ['4a716eb8-12f9-409b-9732-549585090f61', '4a716eb8-12f9-409b-9732-549585090f62']
-
 
         return instancesIds
 
