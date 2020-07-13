@@ -7,6 +7,7 @@ from flask.json import JSONEncoder
 from reprocess.settings import *
 from reprocess.discovery import construct_blueprint
 from platform_sdk.domain.reader import DomainReaderApi
+from platform_sdk.core_api import core_metadata
 from platform_sdk.process_memory import ProcessMemoryApi
 from platform_sdk.domain.schema.api import SchemaApi
 
@@ -42,6 +43,6 @@ def create_app(test_config=None):
         return 'Hello, World! The application is running.'
 
     app.register_blueprint(
-        construct_blueprint(ProcessMemoryApi(PROCESS_MEMORY), DomainReaderApi(DOMAIN_READER), SchemaApi(SCHEMA)))
+        construct_blueprint(ProcessMemoryApi(PROCESS_MEMORY), DomainReaderApi(DOMAIN_READER), SchemaApi(SCHEMA), core_metadata.Metadata(CORE_API)))
 
     return app

@@ -4,6 +4,10 @@ SCHEMA = {
     'uri': os.environ.get('SCHEMA_URI', 'http://localhost:9092/api/v1/'),
 }
 
+CORE_API = {
+    'uri': os.environ.get('COREAPI_URL', 'http://localhost:9110/core/'),
+}
+
 PROCESS_MEMORY = {
     'api_url': os.environ.get('PROCESS_MEMORY_URI', 'http://localhost:9091/'),
 }
