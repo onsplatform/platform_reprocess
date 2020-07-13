@@ -19,3 +19,8 @@ DOMAIN_READER = {
 REPROCESS_SETTINGS = {
     'host': os.environ.get('RABBIT_MQ', 'localhost'),
 }
+
+CELERY = {
+    'broker': os.environ.get('CELERY_BROKER', 'pyamqp://guest@rabbitmq//'),
+    'name': 'discovery_worker'
+}

@@ -9,3 +9,7 @@ export RABBIT_MQ=rabbitmq
 cd /var/cron/reprocess
 
 /usr/local/bin/pipenv run python reprocess/reprocess_executor.py
+sleep 20
+/usr/local/bin/pipenv run python reprocess/reprocess_executor.py
+sleep 20
+/usr/local/bin/pipenv run python reprocess/reprocess_executor.py
