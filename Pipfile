@@ -8,10 +8,11 @@ pytest = "*"
 
 [packages]
 flask = "*"
-ons-platform-python-sdk = {editable = true,git = "https://github.com/onsplatform/platform_sdk.git",ref = "coreapi_integration"}
+ons-platform-python-sdk = {ref = "coreapi_integration",git = "https://github.com/onsplatform/platform_sdk.git",editable = true}
 pika = "*"
 gunicorn = "*"
 pytest = "*"
+celery = "*"
 
 [requires]
 python_version = "3.7"
