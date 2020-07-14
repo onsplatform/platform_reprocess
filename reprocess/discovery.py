@@ -32,12 +32,13 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema, core_m
 
     @discovery_blueprint.route('/force_reprocess', methods=['POST'])
     def force_reprocess():
+
         app = request.json['app']
         solution = request.json['solution']
         process_id = request.json['process_id']
         date_begin_validity = request.json['date_begin_validity']
         date_end_validity = request.json['date_end_validity']
-        sorted_operations = sorted(core_metadata_api.find_by_process_id(process_id), key=lambda k: k['modified'],
+        sorted_operations = sorted(core_metadata_api.find_by_process_id(process_id).content, key=lambda k: k['_metadata']['modified_at'],
                                    reverse=True)
 
         current_operations = {}
@@ -48,17 +49,18 @@ def construct_blueprint(process_memory_api, domain_reader, domain_schema, core_m
         reprocessable_operation = []
         for operation_name in current_operations.keys():
             if current_operations[operation_name]['reprocessable']:
-                reprocessable_operation.append(current_operations[operation_name])
-
+                reprocessable_operation.append(current_operations[operation_name]['name'])
+        
         if not reprocessable_operation:
             return make_response('', 200)
 
         current_app.logger.debug(
             f'force reprocess to: {solution} app: {app} process_id: {process_id} dates: {date_begin_validity} - {date_end_validity}')
-        instances_to_reprocess = [pm for pm in
+        import pdb; pdb.set_trace()
+        instances_to_reprocess = [pm['id'] for pm in
                                   process_memory_api.get_current_events_between_dates(process_id, date_begin_validity,
                                                                                       date_end_validity) if
-                                  pm['event']['name'] in reprocessable_operation]
+                                  pm['event'] in reprocessable_operation]
 
         current_app.logger.debug(f'instances found: {instances_to_reprocess}')
         if solution and app and instances_to_reprocess:

@@ -43,6 +43,6 @@ def create_app(test_config=None):
         return 'Hello, World! The application is running.'
 
     app.register_blueprint(
-        construct_blueprint(ProcessMemoryApi(PROCESS_MEMORY), DomainReaderApi(DOMAIN_READER), SchemaApi(SCHEMA), core_metadata.Metadata(CORE_API)))
+        construct_blueprint(ProcessMemoryApi(PROCESS_MEMORY), DomainReaderApi(DOMAIN_READER), SchemaApi(SCHEMA), core_metadata.Metadata(CORE_API['uri'])))
 
     return app
