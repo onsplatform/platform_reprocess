@@ -5,7 +5,8 @@ SCHEMA = {
 }
 
 CORE_API = {
-    'uri': os.environ.get('COREAPI_URL', 'http://localhost:9110'),
+    'uri': os.environ.get('COREAPI_URL', 'http://localhost'),
+    'port': os.environ.get('COREAPI_PORT', '9110'),
 }
 
 PROCESS_MEMORY = {
