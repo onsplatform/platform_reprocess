@@ -18,7 +18,7 @@ app.conf.task_default_queue = 'reprocess_discovery'
 domain_schema = SchemaApi(SCHEMA)
 domain_reader = DomainReaderApi(DOMAIN_READER)
 process_memory_api = ProcessMemoryApi(PROCESS_MEMORY)
-core_metadata_api = core_metadata.Metadata(CORE_API['uri'])
+core_metadata_api = core_metadata.Metadata(CORE_API['uri'] + '/core/')
 
 logger = logging.getLogger('check.tasks')
 
@@ -41,6 +41,9 @@ def check(solution, instance_id):
 
 @app.task
 def force_reprocess(application, solution, process_id, date_begin_validity, date_end_validity):
+    logger.warning(
+        f'force reprocess to: {solution} app: {application} process_id: {process_id} dates: {date_begin_validity} - {date_end_validity}')
+
     sorted_operations = sorted(core_metadata_api.find_by_process_id(process_id).content, key=lambda k: k['_metadata']['modified_at'],
                                reverse=True)
 
@@ -57,9 +60,6 @@ def force_reprocess(application, solution, process_id, date_begin_validity, date
     if not reprocessable_operation:
         return
 
-    logger.warning(
-        f'force reprocess to: {solution} app: {application} process_id: {process_id} dates: {date_begin_validity} - {date_end_validity}')
-    import pdb; pdb.set_trace()
     instances_to_reprocess = [pm['id'] for pm in
                               process_memory_api.get_current_events_between_dates(process_id, date_begin_validity,
                                                                                   date_end_validity) if
