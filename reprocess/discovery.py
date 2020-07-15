@@ -18,7 +18,7 @@ app.conf.task_default_queue = 'reprocess_discovery'
 domain_schema = SchemaApi(SCHEMA)
 domain_reader = DomainReaderApi(DOMAIN_READER)
 process_memory_api = ProcessMemoryApi(PROCESS_MEMORY)
-core_metadata_api = core_metadata.Metadata(CORE_API['uri'] + ':' + CORE_API['port'] + '/core/')
+core_metadata_api = core_metadata.Metadata(CORE_API['uri'] + 'core/')
 
 logger = logging.getLogger('check.tasks')
 
